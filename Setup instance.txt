@@ -1,0 +1,243 @@
+0. DB2 utils:
+sudo apt-get update 
+sudo apt install openjdk-8-jre-headless 
+sudo apt install openjdk-8-jdk-headless 
+sudo apt install unzip
+sudo apt-get install libstdc++6
+sudo apt-get install libstdc++5
+sudo apt-get install ksh
+sudo apt-get install libaio1
+sudo apt-get install rpm
+sudo dpkg --add-architecture i386
+sudo apt-get update && sudo apt-get upgrade
+sudo apt-get install libpam0g:i386
+sudo apt-get install binutils
+
+1. IE
+scp -i wan-gateway-example.pem ../crowley/gigaspaces-insightedge-enterprise-14.0.0-rc1-b19916.zip ubuntu@ec2-18-191-157-144.us-east-2.compute.amazonaws.com:/tmp
+mv /tmp/gigaspaces-insightedge-enterprise-14.0.0-rc1-b19916.zip ~
+unzip gigaspaces-insightedge-enterprise-14.0.0-rc1-b19916.zip
+rm gigaspaces-insightedge-enterprise-14.0.0-rc1-b19916.zip
+
+2. example code
+scp -i wan-gateway-example.pem ../crowley/insightedge-geo-demo-master.zip ubuntu@ec2-18-219-234-12.us-east-2.compute.amazonaws.com:/tmp
+mv /tmp/insightedge-geo-demo-master.zip ~
+unzip insightedge-geo-demo-master.zip
+rm insightedge-geo-demo-master.zip
+
+3. Maven
+sudo apt-get install maven
+
+4. cd insightedge-geo-demo-master
+mvn clean install
+
+5. kafka
+scp -i wan-gateway-example.pem ../crowley/kafka_2.11-2.1.1.tgz ubuntu@ec2-18-219-234-12.us-east-2.compute.amazonaws.com:/tmp
+mv /tmp/kafka_2.11-2.1.1.tgz ~
+mkdir kafka
+cd kafka
+tar -xvzf ~/kafka_2.11-2.1.1.tgz --strip 1
+sudo useradd kafka -m
+sudo passwd kafka
+sudo adduser kafka sudo
+nano .profile
+export KAFKA_HOME=/home/ubuntu/kafka
+source .profile
+
+6. SBT
+echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
+sudo apt-get update
+sudo apt-get install sbt
+
+
+7. RUN
+sudo sbt clean clean-files
+sudo rm -f -r insightedge-geo-demo-old-master/target
+sudo sbt scalaVersion
+sudo sbt sbtVersion
+
+sudo gigaspaces-insightedge-enterprise-14.0.0-rc1-b19916/bin/insightedge demo
+insightedge-geo-demo-old-master/scripts/start-local.sh
+java -cp /home/ubuntu/insightedge-geo-demo-master/feeder/target/feeder-12.3.0-m19-jar-with-dependencies.jar org.insightedge.geodemo.feeder.Feeder
+sudo gigaspaces-insightedge-enterprise-14.0.0-rc1-b19916/insightedge/bin/insightedge-submit --class org.insightedge.geodemo.processing.DymanicPriceProcessor --master spark://127.0.0.1:7077 /home/ubuntu/insightedge-geo-demo-master/insightedge-processing/target/insightedge-processing-12.3.0-m19.jar spark://127.0.0.1:7077
+sudo insightedge-geo-demo-old-master/scripts/start-web.sh
+
+8. Open http://localhost:9000
+
+9. UBUNTU x2go:
+sudo apt-get install python-software-properties
+sudo apt-get install software-properties-common
+sudo add-apt-repository ppa:x2go/stable
+sudo apt-get update
+#sudo apt-get install x2goclient
+sudo apt-get -y install x2goserver x2goserver-xsession
+sudo add-apt-repository ppa:ubuntu-mate-dev/ppa
+sudo apt-get update
+sudo apt-get -y install ubuntu-mate-core ubuntu-mate-desktop
+
+10. Install DB2
+scp -i wan-gateway-example.pem ../Verizon\ POC/v11.1_linuxx64_server_t.tar.gz ubuntu@ec2-18-219-234-12.us-east-2.compute.amazonaws.com:/tmp
+mv /tmp/v11.1_linuxx64_server_t.tar.gz ~
+tar xfz v11.1_linuxx64_server_t.tar.gz
+sudo server_t/db2setup
+. /home/ubuntu/sqllib/db2profile
+
+
+
+11. MQ
+https://ak-dsw-mul.dhe.ibm.com/sdfdl/v2/fulfill/CN9GYML/Xa.2/Xb.JSiMj8YMrecIlCMeUFUBDy5SbGJRKOBNaGD7tU-2wp0/Xc.CN9GYML/IBM_MQ_9.0.0.0_LINUX_X86-64_TRIAL.tar.gz/Xd./Xf.LPR.D1VK/Xg.9794087/Xi.ESD-WSMQ-EVAL/XY.regsrvs/XZ.Al-H5BkulkBspl_H2mZNPLFE4YI/IBM_MQ_9.0.0.0_LINUX_X86-64_TRIAL.tar.gz
+
+cd MQServer
+dltmqm PUBSRC
+db2 drop database PUBSRC
+
+
+sudo ./mqlicense.sh -text_only
+sudo dpkg -i ibmmq-runtime_9.1.0.0_amd64.deb 
+sudo dpkg -i ibmmq-server_9.1.0.0_amd64.deb 
+sudo /opt/mqm/bin/setmqinst -i -p /opt/mqm
+sudo usermod -a -G mqm db2inst1
+
+
+db2start
+strmqm PUBSRC
+
+
+------
+ su - db2inst1
+cd /home/db2inst1/db2mqrep
+db2sampl  -name PUBSRC -sql
+db2 update db cfg for PUBSRC using logarchmeth1 "DISK:/home/db2inst1/db2mqrep"
+db2 backup database PUBSRC to "/home/db2inst1/db2mqrep" without prompting
+asnclp -f demomq.asnclp
+chmod u+x qrepl.pubsrc.mq_aixlinux.sh
+./qrepl.pubsrc.mq_aixlinux.sh
+asnclp -f demopub.asnclp
+cd myQCap
+asnqcap capture_server=PUBSRC
+
+After this MQ will start capturing messages on DB and putting them to queue ASN.PUBSRC.DATA
+
+
+gigaspaces-insightedge-enterprise-14.0.0-rc1-b19916/bin/insightedge demo
+
+
+12. Run app
+su - db2inst1
+cd db2mqrep
+java -Djava.library.path=/opt/mqm/java/lib64 -jar db2-delta-server-1.0-jar-with-dependencies.jar
+Use list of libs in example with delta server
+debug
+java -Djava.library.path=/opt/mqm/java/lib64 -cp db2-delta-server-1.0-jar-with-dependencies.jar com.gigaspaces.mq.util.ReadQueueMessage - take 1 msg from queue
+
+mv /tmp/db2-delta-server-1.0-jar-with-dependencies.jar /home/db2inst1/db2mqrep
+
+
+db2 "delete from DB2INST1.EMPLOYEE where empno=000067"
+db2 "insert into DB2INST1.EMPLOYEE(empno, firstnme, lastname, edlevel,workdept) values ('000067','TestN2','TestS2',18,'C01')";
+db2 "update DB2INST1.EMPLOYEE set firstnme ='TestN' where empno = '000067'";
+db2 "insert into DEPARTMENT(DEPTNO,DEPTNAME,MGRNO,ADMRDEPT) values ('JJ6','SALLY','000100','E01')";
+
+
+13. Install hadoop
+https://www.digitalvidya.com/blog/install-hadoop-on-ubuntu-and-run-your-first-mapreduce-program/
+
+run
+su - hduser
+cd /usr/local/hadoop/sbin
+start-all.sh
+stop-all.sh
+
+
+14. Install Hive
+
+https://www.edureka.co/blog/apache-hive-installation-on-ubuntu
+
+wget http://archive.apache.org/dist/hive/hive-3.1.1.0/apache-hive-3.1.1-bin.tar.gz
+tar -xzf apache-hive-3.1.1-bin.tar.gz
+nano .bashrc
+	export HIVE_HOME=/home/ubuntu/apache-hive-3.1.1.0-bin
+	export PATH=$PATH:$HIVE_HOME/bin
+sudo nano .bashrc
+	export HADOOP_HOME=/usr/local/hadoop
+	export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+	export PATH=$PATH:$HADOOP_HOME/bin
+	export PATH=$PATH:$HADOOP_HOME/sbin
+	export HADOOP_MAPRED_HOME=$HADOOP_HOME
+	export HADOOP_COMMON_HOME=$HADOOP_HOME
+	export HADOOP_HDFS_HOME=$HADOOP_HOME
+	export YARN_HOME=$HADOOP_HOME
+	export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+	export HADOOP_OPTS=”-Djava.library.path=$HADOOP_HOME/lib”
+
+source .bashrc
+
+nano /usr/local/hadoop/etc/hadoop/core-site.xml
+
+<property>
+     <name>hadoop.proxyuser.hduser.hosts</name> 
+     <value>*</value> 
+</property> 
+<property>
+     <name>hadoop.proxyuser.hduser.groups</name>
+     <value>*</value>
+</property>
+
+
+
+(su - hduser)
+hive --version
+
+hive
+ $HIVE_HOME/bin/hive --service hiveserver2 &
+
+create database hivedb;
+use hivedb;
+CREATE TABLE TRADE (
+ISIN VARCHAR(60),
+MNEMONIC VARCHAR(60),
+SECURITY_DESC VARCHAR(500),
+SECURITY_TYPE VARCHAR(60),
+CURRENCY VARCHAR(60),
+SECURITY_ID INTEGER,
+TRADE_DATE_TIME TIMESTAMP,
+START_PRICE DECIMAL(10,2),
+MAX_PRICE DECIMAL(10,2),
+MIN_PRICE DECIMAL(10,2),
+END_PRICE DECIMAL(10,2),
+TRADED_VOLUME DECIMAL(10,2),
+NUMBER_OF_TRADES DECIMAL(10,2)
+);
+
+
+
+___________________________________________________________________________________________________________________________________________________
+
+
+user db2inst1
+pass db2inst1
+port 
+
+
+connection: db2inst1 48631
+db2start
+
+
+LOGIN:
+su - db2inst2
+db2start
+
+Install Location:/opt/ibm/db2/V11.1_01
+
+Instance Name:db2inst2
+
+Fenced User Name:db2fenc2
+
+Port: 50001
+
+/root/db2server.rsp
+
+
+
+
