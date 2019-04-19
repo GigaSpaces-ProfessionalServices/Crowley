@@ -1,0 +1,11 @@
+In the first terminal run the following command to get its PID.
+
+echo $$
+
+In the second terminal run
+
+pkttyagent --process PID_FROM_STEP_1
+
+In the first terminal, do whatever you need to do with pkexec.
+
+pkexec visudo

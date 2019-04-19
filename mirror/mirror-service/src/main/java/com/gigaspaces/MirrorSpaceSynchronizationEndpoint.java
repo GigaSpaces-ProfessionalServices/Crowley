@@ -21,30 +21,36 @@ public class MirrorSpaceSynchronizationEndpoint extends SpaceSynchronizationEndp
     private static GigaSpace gigaspace;
 
     static {
-        IJSpace space = new UrlSpaceConfigurer("jini://*/*/insightedge-space").lookupGroups("xap-14.0.0").lookupTimeout(20000).space();
+        IJSpace space = new UrlSpaceConfigurer("jini://*/*/insightedge-space").lookupGroups("xap-14.2.0").lookupTimeout(20000).space();
         gigaspace = new GigaSpaceConfigurer(space).gigaSpace();
+        System.out.println("----->> Space found");
     }
 
     @Override
     public void onOperationsBatchSynchronization(OperationsBatchData batchData) {
 
         Connection conn = null;
+
         try {
             Class.forName("org.apache.hive.jdbc.HiveDriver");
             conn = DriverManager.getConnection("jdbc:hive2://127.0.0.1:10000/hivedb", "hduser", "hduser");
-            PreparedStatement preparedStatement = conn.prepareStatement("insert into trade(ISIN,MNEMONIC,SECURITY_DESC," +
-                    "SECURITY_TYPE,CURRENCY,SECURITY_ID,TRADE_DATE_TIME,START_PRICE,MAX_PRICE,MIN_PRICE,END_PRICE,TRADED_VOLUME,NUMBER_OF_TRADES) " +
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into XetraStockMarketTrade(isin,mnemonic,securityDesc," +
+                    "securityType,currency,securityId,dateTimeTrade,startPrice,maxPrice,minPrice,endPrice,tradedVolume,numberOfTrades) " +
                     "values (?,?,?,?,?,?,?,?,?,?,?,?,?)");
 
+            System.out.println("----->> Driver found");
 
 
             for (DataSyncOperation operation : batchData.getBatchDataItems()) {
                 switch (operation.getDataSyncOperationType()) {
                     case WRITE:
+                        System.out.println("----->> Inside write");
                         XetraStockMarketTrade newTrade = (XetraStockMarketTrade)operation.getDataAsObject();
 
 
                         if (newTrade.getDateTimeTrade().before(new Timestamp(System.currentTimeMillis() - WEEK_IN_MILLIS))) {
+
+                            System.out.println("----->> Preparing db object");
                             // add to db
                             preparedStatement.setString(1, newTrade.getIsin());
                             preparedStatement.setString(2, newTrade.getMnemonic());
@@ -61,7 +67,9 @@ public class MirrorSpaceSynchronizationEndpoint extends SpaceSynchronizationEndp
                             preparedStatement.setInt(13, newTrade.getNumberOfTrades());
                             preparedStatement.execute();
 
+                            System.out.println("----->> remove from space");
                             gigaspace.clear(newTrade);
+                            System.out.println("----->> Done!!!");
 
                         }
                         break;

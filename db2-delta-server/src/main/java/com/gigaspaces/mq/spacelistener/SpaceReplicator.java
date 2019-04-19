@@ -78,7 +78,7 @@ public class SpaceReplicator implements SpaceDataEventListener<Employee> {
 
         IJSpace space;
 
-        space = new UrlSpaceConfigurer("jini://*/*/insightedge-space").lookupGroups("xap-14.0.0").lookupTimeout(20000).space();
+        space = new UrlSpaceConfigurer("jini://*/*/insightedge-space").lookupGroups("xap-14.2.0").lookupTimeout(20000).space();
         gigaSpace = new GigaSpaceConfigurer(space).gigaSpace();
 
         if (gigaSpace == null) {

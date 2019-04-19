@@ -1,0 +1,34 @@
+$ asnqcap capture_server=PUBSRC
+2019-02-26-12.23.59.688941 ASN0600I  "Q Capture" : "" : "Initial" : Program "mqpub 11.4.0 (Build 11.1.3.3 Level s1803021700, PTF DYN1803021700AMD64)" is starting.
+2019-02-26-12.24.02.674472 ASN7259W  "Q Capture" : "ASN" : "WorkerThread" : The MAXDEPTH attribute for restart queue "ASN.RESTARTQ" is greater than the recommended value of 1.
+2019-02-26-12.24.02.772024 ASN7207I  "Q Capture" : "ASN" : "WorkerThread" : The contents of the restart queue override file are as follows: <send_queue_name>, <restart_lsn>, <maxcmtseq>, <partition> (only for partitioned databases):
+ASN.PUBSRC.DATA                                  0000:0000:0000:19D3:0000:0000:0004:0746 0000:0000:0000:0000:0000:0000:0000:0000 
+2019-02-26-12.24.02.943403 ASN7010I  "Q Capture" : "ASN" : "WorkerThread" : The program successfully activated publication, Q subscription, or mapping "EMPLOYEE0001". Send queue or mapping group: "ASN.PUBSRC.DATA". Publishing or replication queue map "PUBSRC.ASN". Source table "DB2INST1.EMPLOYEE".
+2019-02-26-12.24.02.946756 ASN7010I  "Q Capture" : "ASN" : "WorkerThread" : The program successfully activated publication, Q subscription, or mapping "DEPARTMENT0001". Send queue or mapping group: "ASN.PUBSRC.DATA". Publishing or replication queue map "PUBSRC.ASN". Source table "DB2INST1.DEPARTMENT".
+2019-02-26-12.24.02.948425 ASN7010I  "Q Capture" : "ASN" : "WorkerThread" : The program successfully activated publication, Q subscription, or mapping "PROJECT0001". Send queue or mapping group: "ASN.PUBSRC.DATA". Publishing or replication queue map "PUBSRC.ASN". Source table "DB2INST1.PROJECT".
+2019-02-26-12.24.02.950834 ASN7000I  "Q Capture" : "ASN" : "WorkerThread" : "0" subscriptions are active. "0" subscriptions are inactive. "3" subscriptions that were new and were successfully activated. "0" subscriptions that were new could not be activated and are now inactive.
+2019-02-26-12.24.02.950894 ASN0572I  "Q Capture" : "ASN" : "WorkerThread" : The "mqpub 11.4.0 (Build 11.1.3.3 Level s1803021700, PTF DYN1803021700AMD64), DB2 v11.1.3" program initialized successfully.
+
+
+
+java -Djava.library.path=/opt/mqm/java/lib64 -cp "/opt/mqm/java/lib:./*" com.gigaspaces.mq.listener.DB2SpaceListener -qmgr PUBSRC -queue ASN.PUBSRC.DATA -time 60000 -out DEPFiles
+
+
+
+These files must be copied from the MQ server that you are running against.
+
+ 
+ 
+
+ 
+ ls -l | grep "dhbcore.jar"
+
+ Other jars:
+
+ ls -l | grep "connector.jar"
+ 
+ 
+ ls -l | grep "jndi.jar"
+ ls -l | grep "jta.jar"
+ ls -l | grep "ldap.jar"
+ 

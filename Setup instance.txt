@@ -211,6 +211,9 @@ NUMBER_OF_TRADES DECIMAL(10,2)
 );
 
 
+15. Update Zeppelin interpreter settings via API
+https://zeppelin.apache.org/docs/0.6.1/rest-api/rest-interpreter.html
+
 
 ___________________________________________________________________________________________________________________________________________________
 

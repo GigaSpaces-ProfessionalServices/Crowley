@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:os-core="http://www.openspaces.org/schema/core"
+       xmlns:os-events="http://www.openspaces.org/schema/events"
+       xmlns:os-remoting="http://www.openspaces.org/schema/remoting"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+       http://www.openspaces.org/schema/core http://www.openspaces.org/schema/10.2/core/openspaces-core.xsd
+       http://www.openspaces.org/schema/events http://www.openspaces.org/schema/10.2/events/openspaces-events.xsd
+       http://www.openspaces.org/schema/remoting http://www.openspaces.org/schema/10.2/remoting/openspaces-remoting.xsd">
+
+
+    <context:annotation-config />
+
+    <os-core:annotation-support />
+
+
+    <bean id="myFactory" class="com.gigaspaces.analytics_xtreme.server.AnalyticsXtremeManagerFactory">
+        <property name="config" ref="ax-config"/>
+    </bean>
+
+    <os-remoting:service-exporter id="serviceExporter">
+        <os-remoting:service ref="myFactory"/>
+    </os-remoting:service-exporter>
+
+    <bean id="ax-config" class="com.gigaspaces.analytics_xtreme.AnalyticsXtremeConfigurationFactoryBean">
+        <property name="verbose" value="true"/>
+        <property name="coldStart" value="true"/>
+        <property name="policies">
+            <list>
+                <bean class="com.gigaspaces.analytics_xtreme.DataLifecyclePolicyFactoryBean">
+                    <property name="typeName" value="com.gigaspaces.mq.common.XetraStockMarketTrade"/>
+                    <property name="batchDataSource" ref="ax-datasource"/>
+                    <property name="timeColumn" value="dateTimeTrade"/>
+                    <property name="speedPeriod" value="2019-04-19 05:00:00"/>
+                    <property name="timeFormat" value="yyyy-MM-dd HH:mm:ss"/>
+                </bean>
+            </list>
+        </property>
+    </bean>
+
+     <os-core:space id="insightedge-space" url="/./insightedge-space" mirror="true">
+        <os-core:properties>
+            <props>
+                <!-- Use ALL IN CACHE -->
+                <prop key="cluster-config.mirror-service.url"> jini://*/mirror-service_container/mirror-service</prop>
+                <prop key="space-config.engine.cache_policy">1</prop>
+                <prop key="space-config.external-data-source.usage">read-only</prop>
+                <prop key="cluster-config.cache-loader.external-data-source">true</prop>
+                <prop key="cluster-config.cache-loader.central-data-source">true</prop>
+            </props>
+        </os-core:properties>
+    </os-core:space>
+
+    <!--
+        Defines a distributed transaction manager.
+    -->
+     <os-core:distributed-tx-manager id="transactionManager"/>
+
+    <!--
+        OpenSpaces simplified space API built on top of IJSpace/JavaSpace.
+    -->
+    <os-core:giga-space id="gigaSpace" space="insightedge-space" tx-manager="transactionManager"/>
+
+
+    <bean id="ax-datasource" class="com.gigaspaces.analytics_xtreme.spark.SparkHiveBatchDataSourceFactoryBean">
+        <property name="sparkSessionProvider" ref="sparkSessionFactory"/>
+    </bean>
+    
+      <bean id="sparkSessionFactory" class="org.insightedge.spark.SparkSessionProviderFactoryBean">
+        <property name="master" value="local[*]" />
+        <property name="enableHiveSupport" value="true" />
+        <property name="logLevel" value="WARNING" />
+        <property name="configOptions">
+            <map>
+                <entry key="hive.metastore.uris" value="thrift://hive-metastore:9083"/>
+                <entry key="spark.sql.hive.metastore.version" value="2.3.2"/>
+                <entry key="spark.sql.hive.metastore.jars"
+                       value="#{systemEnvironment['SPARK_HOME']}/jars/hive/*:#{systemEnvironment['SPARK_HOME']}/jars/*"/>
+                <entry key="spark.ui.enabled" value="false"/>
+            </map>
+        </property>
+
+    </bean>
+
+</beans>

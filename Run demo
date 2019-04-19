@@ -9,7 +9,7 @@ asnqcap capture_server=PUBSRC &
 su - hduser
 $HADOOP_HOME/sbin/start-all.sh
 $HIVE_HOME/bin/hive --service hiveserver2 &
-beeline jdbc:hive2://127.0.0.1:10000/hivedb
+beeline -u jdbc:hive2://127.0.0.1:10000/hivedb
 use hivedb;
 drop table trade;
 CREATE TABLE TRADE (
@@ -28,19 +28,42 @@ TRADED_VOLUME DECIMAL(10,2),
 NUMBER_OF_TRADES DECIMAL(10,2)
 );
 
+
+CREATE TABLE XetraStockMarketTrade (
+isin VARCHAR(60),
+mnemonic VARCHAR(60),
+securityDesc VARCHAR(500),
+securityType VARCHAR(60),
+currency VARCHAR(60),
+securityId INTEGER,
+dateTimeTrade TIMESTAMP,
+startPrice DECIMAL(10,2),
+maxPrice DECIMAL(10,2),
+minPrice DECIMAL(10,2),
+endPrice DECIMAL(10,2),
+tradedVolume DECIMAL(10,2),
+numberOfTrades DECIMAL(10,2)
+);
+
+
 su - ubuntu
-sudo rm ielogs.sh
+sudo rm ielogs.txt
 sudo gigaspaces-insightedge-enterprise-14.0.0-rc1-b19916/bin/insightedge demo > ielogs.txt &
+sudo gigaspaces-insightedge-enterprise-14.2.0-ga-b20400/bin/insightedge demo > ielogs.txt &
+sudo gigaspaces-insightedge-enterprise-14.2.0-ga-b20400/bin/gs.sh deploy
 
 deploy insightedge-space
 deploy mirror-service
 
 su - db2inst1
+
+./test_trade.sh
+
 db2 connect to PUBSRC
 db2 "delete from DB2INST1.XETRA_STOCK_TRADE_DATA where SECURITY_ID = 2505387"
 db2 "delete from DB2INST1.XETRA_STOCK_TRADE_DATA where SECURITY_ID = 2505388"
 db2 "insert into DB2INST1.XETRA_STOCK_TRADE_DATA(ISIN,MNEMONIC,SECURITY_DESC,SECURITY_TYPE,CURRENCY,SECURITY_ID,TRADE_DATE_TIME,START_PRICE,MAX_PRICE,MIN_PRICE,END_PRICE,TRADED_VOLUME,NUMBER_OF_TRADES) values ('GB0059822006','DLG','DIALOG SEMICOND.   LS-,10','More than week','EUR','2505387','2018-10-02-07.41.00','19.07','19.09','19.06','19.06','382','3')";
-db2 "insert into DB2INST1.XETRA_STOCK_TRADE_DATA(ISIN,MNEMONIC,SECURITY_DESC,SECURITY_TYPE,CURRENCY,SECURITY_ID,TRADE_DATE_TIME,START_PRICE,MAX_PRICE,MIN_PRICE,END_PRICE,TRADED_VOLUME,NUMBER_OF_TRADES) values ('GB0059822007','DLC','DIALOG SEMICOND.   LS-,11','Less then week','EUR','2505388','2019-03-27-07.41.00','19.07','19.09','19.06','19.06','382','3')";
+db2 "insert into DB2INST1.XETRA_STOCK_TRADE_DATA(ISIN,MNEMONIC,SECURITY_DESC,SECURITY_TYPE,CURRENCY,SECURITY_ID,TRADE_DATE_TIME,START_PRICE,MAX_PRICE,MIN_PRICE,END_PRICE,TRADED_VOLUME,NUMBER_OF_TRADES) values ('GB0059822007','DLC','DIALOG SEMICOND.   LS-,11','Less then week','EUR','2505388','2019-03-30-07.41.00','19.07','19.09','19.06','19.06','382','3')";
 db2 disconnect PUBSRC
 
 su - db2inst1

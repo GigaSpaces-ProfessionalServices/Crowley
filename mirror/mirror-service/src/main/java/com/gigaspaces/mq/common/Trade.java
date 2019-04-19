@@ -168,3 +168,5 @@ public abstract class Trade {
         this.numberOfTrades = numberOfTrades;
     }
 }
+
+
