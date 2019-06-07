@@ -1,17 +1,17 @@
 0. DB2 utils:
 sudo apt-get update 
-sudo apt install openjdk-8-jre-headless 
-sudo apt install openjdk-8-jdk-headless 
-sudo apt install unzip
-sudo apt-get install libstdc++6
-sudo apt-get install libstdc++5
-sudo apt-get install ksh
-sudo apt-get install libaio1
-sudo apt-get install rpm
+sudo apt install -y openjdk-8-jre-headless 
+sudo apt install -y openjdk-8-jdk-headless 
+sudo apt install -y unzip
+sudo apt-get install -y libstdc++6
+sudo apt-get install -y libstdc++5
+sudo apt-get install -y ksh
+sudo apt-get install -y libaio1
+sudo apt-get install -y rpm
 sudo dpkg --add-architecture i386
 sudo apt-get update && sudo apt-get upgrade
-sudo apt-get install libpam0g:i386
-sudo apt-get install binutils
+sudo apt-get install -y libpam0g:i386
+sudo apt-get install -y binutils
 
 1. IE
 scp -i wan-gateway-example.pem ../crowley/gigaspaces-insightedge-enterprise-14.0.0-rc1-b19916.zip ubuntu@ec2-18-191-157-144.us-east-2.compute.amazonaws.com:/tmp
@@ -89,10 +89,6 @@ sudo server_t/db2setup
 https://ak-dsw-mul.dhe.ibm.com/sdfdl/v2/fulfill/CN9GYML/Xa.2/Xb.JSiMj8YMrecIlCMeUFUBDy5SbGJRKOBNaGD7tU-2wp0/Xc.CN9GYML/IBM_MQ_9.0.0.0_LINUX_X86-64_TRIAL.tar.gz/Xd./Xf.LPR.D1VK/Xg.9794087/Xi.ESD-WSMQ-EVAL/XY.regsrvs/XZ.Al-H5BkulkBspl_H2mZNPLFE4YI/IBM_MQ_9.0.0.0_LINUX_X86-64_TRIAL.tar.gz
 
 cd MQServer
-dltmqm PUBSRC
-db2 drop database PUBSRC
-
-
 sudo ./mqlicense.sh -text_only
 sudo dpkg -i ibmmq-runtime_9.1.0.0_amd64.deb 
 sudo dpkg -i ibmmq-server_9.1.0.0_amd64.deb 
@@ -100,19 +96,57 @@ sudo /opt/mqm/bin/setmqinst -i -p /opt/mqm
 sudo usermod -a -G mqm db2inst1
 
 
+dltmqm PUBSRC
+db2 drop database PUBSRC
+
 db2start
 strmqm PUBSRC
 
 
 ------
  su - db2inst1
+download db2gs.jar
+mkdir /home/db2inst1/db2mqrep 
 cd /home/db2inst1/db2mqrep
 db2sampl  -name PUBSRC -sql
+
+create table for stock data----->
+CREATE TABLE DB2INST1.XETRA_STOCK_TRADE_DATA (
+ISIN VARCHAR(60),
+MNEMONIC VARCHAR(60),
+SECURITY_DESC VARCHAR(500),
+SECURITY_TYPE VARCHAR(60),
+CURRENCY VARCHAR(60),
+SECURITY_ID INTEGER,
+TRADE_DATE_TIME TIMESTAMP,
+START_PRICE DECIMAL(10,2),
+MAX_PRICE DECIMAL(10,2),
+MIN_PRICE DECIMAL(10,2),
+END_PRICE DECIMAL(10,2),
+TRADED_VOLUME DECIMAL(10,2),
+NUMBER_OF_TRADES DECIMAL(10,2)
+);
+>-----
+
 db2 update db cfg for PUBSRC using logarchmeth1 "DISK:/home/db2inst1/db2mqrep"
 db2 backup database PUBSRC to "/home/db2inst1/db2mqrep" without prompting
 asnclp -f demomq.asnclp
 chmod u+x qrepl.pubsrc.mq_aixlinux.sh
 ./qrepl.pubsrc.mq_aixlinux.sh
+
+
+fix demopub.asnclp --->
+asnclp session set to q replication;
+set run script now stop on sql error on;
+set server capture to dbalias PUBSRC ;
+set qmanager PUBSRC for capture schema ;
+create control tables for capture server using restartq "ASN.RESTARTQ" adminq "ASN.ADMINQ" ;
+create pubqmap "PUBSRC.ASN" USING SENDQ "ASN.PUBSRC.DATA" message format delimited ;
+create pub using pubqmap "PUBSRC.ASN" (EMPLOYEE) ;
+create pub using pubqmap "PUBSRC.ASN" (DEPARTMENT) ;
+create pub using pubqmap "PUBSRC.ASN" (PROJECT) ;
+create pub using pubqmap "PUBSRC.ASN" (XETRA_STOCK_TRADE_DATA) ;
+---->
 asnclp -f demopub.asnclp
 cd myQCap
 asnqcap capture_server=PUBSRC
@@ -142,6 +176,23 @@ db2 "insert into DEPARTMENT(DEPTNO,DEPTNAME,MGRNO,ADMRDEPT) values ('JJ6','SALLY
 
 13. Install hadoop
 https://www.digitalvidya.com/blog/install-hadoop-on-ubuntu-and-run-your-first-mapreduce-program/
+http://mirrors.sonic.net/apache/hadoop/common/hadoop-3.0.2/hadoop-3.0.2.tar.gz
+
+
+#HADOOP VARIABLES START
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+export HADOOP_HOME=/usr/local/hadoop
+export PATH=$PATH:$HADOOP_HOME/bin
+export PATH=$PATH:$HADOOP_HOME/sbin
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export YARN_HOME=$HADOOP_HOME
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+export HADOOP_OPTS=”-Djava.library.path=$HADOOP_HOME/lib”
+#HADOOP VARIABLES END
+
+
 
 run
 su - hduser
@@ -157,7 +208,7 @@ https://www.edureka.co/blog/apache-hive-installation-on-ubuntu
 wget http://archive.apache.org/dist/hive/hive-3.1.1.0/apache-hive-3.1.1-bin.tar.gz
 tar -xzf apache-hive-3.1.1-bin.tar.gz
 nano .bashrc
-	export HIVE_HOME=/home/ubuntu/apache-hive-3.1.1.0-bin
+	export HIVE_HOME=/home/hduser/apache-hive-2.1.0-bin
 	export PATH=$PATH:$HIVE_HOME/bin
 sudo nano .bashrc
 	export HADOOP_HOME=/usr/local/hadoop
@@ -169,11 +220,11 @@ sudo nano .bashrc
 	export HADOOP_HDFS_HOME=$HADOOP_HOME
 	export YARN_HOME=$HADOOP_HOME
 	export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
-	export HADOOP_OPTS=”-Djava.library.path=$HADOOP_HOME/lib”
+	export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib"
 
 source .bashrc
-
 nano /usr/local/hadoop/etc/hadoop/core-site.xml
+
 
 <property>
      <name>hadoop.proxyuser.hduser.hosts</name> 
@@ -194,20 +245,20 @@ hive
 
 create database hivedb;
 use hivedb;
-CREATE TABLE TRADE (
-ISIN VARCHAR(60),
-MNEMONIC VARCHAR(60),
-SECURITY_DESC VARCHAR(500),
-SECURITY_TYPE VARCHAR(60),
-CURRENCY VARCHAR(60),
-SECURITY_ID INTEGER,
-TRADE_DATE_TIME TIMESTAMP,
-START_PRICE DECIMAL(10,2),
-MAX_PRICE DECIMAL(10,2),
-MIN_PRICE DECIMAL(10,2),
-END_PRICE DECIMAL(10,2),
-TRADED_VOLUME DECIMAL(10,2),
-NUMBER_OF_TRADES DECIMAL(10,2)
+CREATE TABLE XetraStockMarketTrade (
+isin VARCHAR(60),
+mnemonic VARCHAR(60),
+securityDesc VARCHAR(500),
+securityType VARCHAR(60),
+currency VARCHAR(60),
+securityId INT,
+dateTimeTrade TIMESTAMP,
+startPrice DECIMAL(10,2),
+maxPrice DECIMAL(10,2),
+minPrice DECIMAL(10,2),
+endPrice DECIMAL(10,2),
+tradedVolume DECIMAL(10,2),
+numberOfTrades DECIMAL(10,2)
 );
 
 
@@ -215,6 +266,12 @@ NUMBER_OF_TRADES DECIMAL(10,2)
 https://zeppelin.apache.org/docs/0.6.1/rest-api/rest-interpreter.html
 
 
+/home/ubuntu/gigaspaces-insightedge-enterprise-14.2.0-ga-b20400/hive-jdbc-2.3.2-standalone.jar
+
+
+
+/home/hduser/apache-hive-3.1.1-bin/lib/netty-3.10.5.Final.jar
+/home/hduser/apache-hive-3.1.1-bin/lib/netty-all-4.1.17.Final.jar
 ___________________________________________________________________________________________________________________________________________________
 
 

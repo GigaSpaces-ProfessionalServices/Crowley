@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    top level element of the Spring configuration. Note the multiple namespace definition for both
+    GigaSpaces and Spring. You can simply copy and paste this portion of the pu.xml file
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:os-core="http://www.openspaces.org/schema/core"
+       xmlns:os-remoting="http://www.openspaces.org/schema/remoting"
+       xsi:schemaLocation="
+   http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+   http://www.openspaces.org/schema/core http://www.openspaces.org/schema/14.0/core/openspaces-core.xsd
+   http://www.openspaces.org/schema/remoting http://www.openspaces.org/schema/remoting/openspaces-remoting.xsd">
+
+    <!-- Enables to configure Spring beans through annotations -->
+    <context:annotation-config />
+
+    <!-- Enable @PostPrimary and others annotation support. -->
+    <os-core:annotation-support />
+
+    <bean id="myFactory" class="com.gigaspaces.analytics_xtreme.server.AnalyticsXtremeManagerFactory">
+        <property name="config" ref="ax-config"/>
+    </bean>
+
+    <os-remoting:service-exporter id="serviceExporter">
+        <os-remoting:service ref="myFactory"/>
+    </os-remoting:service-exporter>
+
+    <bean id="ax-config" class="com.gigaspaces.analytics_xtreme.AnalyticsXtremeConfigurationFactoryBean">
+        <property name="verbose" value="true"/>
+        <property name="coldStart" value="true"/>
+        <property name="policies">
+            <list>
+                <bean class="com.gigaspaces.analytics_xtreme.DataLifecyclePolicyFactoryBean">
+                    <property name="typeName" value="com.gigaspaces.lambda.model.XetraStockMarketTrade"/>
+                    <property name="batchDataSource" ref="ax-datasource"/>
+                    <property name="timeColumn" value="dateTimeTrade"/>
+                    <property name="speedPeriod" value="2017-07-24 05:00:00"/>
+                    <property name="timeFormat" value="yyyy-MM-dd HH:mm:ss"/>
+                </bean>
+            </list>
+        </property>
+    </bean>
+
+
+    <os-core:embedded-space id="space" space-name="speedSpace" />
+
+    <!-- Define the GigaSpace instance that the application will use to access the space  -->
+    <os-core:giga-space id="speedSpace" space="space"/>
+
+
+    <bean id="sparkSessionFactory" class="org.insightedge.spark.SparkSessionProviderFactoryBean">
+        <property name="master" value="local[*]" />
+        <property name="enableHiveSupport" value="true" />
+        <property name="logLevel" value="WARNING" />
+        <property name="configOptions">
+            <map>
+                <entry key="hive.metastore.uris" value="thrift://hive-metastore:9083"/>
+                <entry key="spark.sql.hive.metastore.version" value="2.3.2"/>
+                <entry key="spark.sql.hive.metastore.jars"
+                       value="#{systemEnvironment['SPARK_HOME']}/jars/hive/*:#{systemEnvironment['SPARK_HOME']}/jars/*"/>
+                <entry key="spark.ui.enabled" value="false"/>
+            </map>
+        </property>
+
+    </bean>
+
+    <bean id="ax-datasource" class="com.gigaspaces.analytics_xtreme.spark.SparkHiveBatchDataSourceFactoryBean">
+        <property name="sparkSessionProvider" ref="sparkSessionFactory"/>
+    </bean>
+
+</beans>

@@ -1,5 +1,5 @@
 Run demo
-ssh -i ....
+ssh -i wan-gateway-example.pem ubuntu@{publicIp}
 su - db2inst1
 db2start
 strmqm PUBSRC
@@ -9,25 +9,14 @@ asnqcap capture_server=PUBSRC &
 su - hduser
 $HADOOP_HOME/sbin/start-all.sh
 $HIVE_HOME/bin/hive --service hiveserver2 &
-beeline -u jdbc:hive2://127.0.0.1:10000/hivedb
-use hivedb;
-drop table trade;
-CREATE TABLE TRADE (
-ISIN VARCHAR(60),
-MNEMONIC VARCHAR(60),
-SECURITY_DESC VARCHAR(500),
-SECURITY_TYPE VARCHAR(60),
-CURRENCY VARCHAR(60),
-SECURITY_ID INTEGER,
-TRADE_DATE_TIME TIMESTAMP,
-START_PRICE DECIMAL(10,2),
-MAX_PRICE DECIMAL(10,2),
-MIN_PRICE DECIMAL(10,2),
-END_PRICE DECIMAL(10,2),
-TRADED_VOLUME DECIMAL(10,2),
-NUMBER_OF_TRADES DECIMAL(10,2)
-);
+/user/hduser/warehouse
 
+beeline -u jdbc:hive2://127.0.0.1:10000/hivedb   -  hive terminal
+beeline -n hduser -u jdbc:hive2://127.0.0.1:10000/hivedb   -  hive terminal
+
+hive
+use hivedb;
+drop table XetraStockMarketTrade;
 
 CREATE TABLE XetraStockMarketTrade (
 isin VARCHAR(60),
@@ -35,7 +24,7 @@ mnemonic VARCHAR(60),
 securityDesc VARCHAR(500),
 securityType VARCHAR(60),
 currency VARCHAR(60),
-securityId INTEGER,
+securityId INT,
 dateTimeTrade TIMESTAMP,
 startPrice DECIMAL(10,2),
 maxPrice DECIMAL(10,2),
@@ -46,27 +35,49 @@ numberOfTrades DECIMAL(10,2)
 );
 
 
+insert into table XetraStockMarketTrade(isin,mnemonic,securityDesc,securityType,currency,securityId,dateTimeTrade,startPrice,maxPrice,minPrice,endPrice,tradedVolume,numberOfTrades) values ('GB0059822006','DLG','DIALOG SEMICOND.   LS-,10','More than week','EUR','2505387','2018-10-02-07.41.00','19.07','19.09','19.06','19.06','382','3');
+
+insert into table XetraStockMarketTrade values ('GB0059822007','DLC','DIALOG SEMICOND.   LS-,14','Less then week','EUR','2505390','2018-05-01 07.41.00','19.07','19.09','19.06','19.06','382','3');
+
 su - ubuntu
 sudo rm ielogs.txt
 sudo gigaspaces-insightedge-enterprise-14.0.0-rc1-b19916/bin/insightedge demo > ielogs.txt &
 sudo gigaspaces-insightedge-enterprise-14.2.0-ga-b20400/bin/insightedge demo > ielogs.txt &
-sudo gigaspaces-insightedge-enterprise-14.2.0-ga-b20400/bin/gs.sh deploy
-
-deploy insightedge-space
-deploy mirror-service
+sudo gigaspaces-insightedge-enterprise-14.2.0-ga-b20400/bin/gs.sh deploy insightedge-space.zip
+sudo gigaspaces-insightedge-enterprise-14.2.0-ga-b20400/bin/gs.sh deploy mirror-service.jar
 
 su - db2inst1
 
 ./test_trade.sh
 
 db2 connect to PUBSRC
+db2 "delete from DB2INST1.XETRA_STOCK_TRADE_DATA where SECURITY_ID = 2505386"
 db2 "delete from DB2INST1.XETRA_STOCK_TRADE_DATA where SECURITY_ID = 2505387"
 db2 "delete from DB2INST1.XETRA_STOCK_TRADE_DATA where SECURITY_ID = 2505388"
-db2 "insert into DB2INST1.XETRA_STOCK_TRADE_DATA(ISIN,MNEMONIC,SECURITY_DESC,SECURITY_TYPE,CURRENCY,SECURITY_ID,TRADE_DATE_TIME,START_PRICE,MAX_PRICE,MIN_PRICE,END_PRICE,TRADED_VOLUME,NUMBER_OF_TRADES) values ('GB0059822006','DLG','DIALOG SEMICOND.   LS-,10','More than week','EUR','2505387','2018-10-02-07.41.00','19.07','19.09','19.06','19.06','382','3')";
-db2 "insert into DB2INST1.XETRA_STOCK_TRADE_DATA(ISIN,MNEMONIC,SECURITY_DESC,SECURITY_TYPE,CURRENCY,SECURITY_ID,TRADE_DATE_TIME,START_PRICE,MAX_PRICE,MIN_PRICE,END_PRICE,TRADED_VOLUME,NUMBER_OF_TRADES) values ('GB0059822007','DLC','DIALOG SEMICOND.   LS-,11','Less then week','EUR','2505388','2019-03-30-07.41.00','19.07','19.09','19.06','19.06','382','3')";
+db2 "delete from DB2INST1.XETRA_STOCK_TRADE_DATA where SECURITY_ID = 2505389"
+db2 "delete from DB2INST1.XETRA_STOCK_TRADE_DATA where SECURITY_ID = 2505390"
+db2 "insert into DB2INST1.XETRA_STOCK_TRADE_DATA(ISIN,MNEMONIC,SECURITY_DESC,SECURITY_TYPE,CURRENCY,SECURITY_ID,TRADE_DATE_TIME,START_PRICE,MAX_PRICE,MIN_PRICE,END_PRICE,TRADED_VOLUME,NUMBER_OF_TRADES) values ('GB0059822006','DLC','DIALOG SEMICOND.   LS-,10','Relevant','EUR','2505386','2019-05-17-11.01.00','19.07','19.09','19.06','19.06','382','3')";
+db2 "insert into DB2INST1.XETRA_STOCK_TRADE_DATA(ISIN,MNEMONIC,SECURITY_DESC,SECURITY_TYPE,CURRENCY,SECURITY_ID,TRADE_DATE_TIME,START_PRICE,MAX_PRICE,MIN_PRICE,END_PRICE,TRADED_VOLUME,NUMBER_OF_TRADES) values ('GB0059822007','DLG','DIALOG SEMICOND.   LS-,11','Irrelevant','EUR','2505387','2018-05-11-07.41.00','19.07','19.09','19.06','19.01','382','3')";
+db2 "insert into DB2INST1.XETRA_STOCK_TRADE_DATA(ISIN,MNEMONIC,SECURITY_DESC,SECURITY_TYPE,CURRENCY,SECURITY_ID,TRADE_DATE_TIME,START_PRICE,MAX_PRICE,MIN_PRICE,END_PRICE,TRADED_VOLUME,NUMBER_OF_TRADES) values ('GB0059822008','DLC','DIALOG SEMICOND.   LS-,12','Irrelevant','EUR','2505388','2018-05-12-07.41.00','19.07','19.09','19.06','19.02','382','3')";
+
+db2 "insert into DB2INST1.XETRA_STOCK_TRADE_DATA(ISIN,MNEMONIC,SECURITY_DESC,SECURITY_TYPE,CURRENCY,SECURITY_ID,TRADE_DATE_TIME,START_PRICE,MAX_PRICE,MIN_PRICE,END_PRICE,TRADED_VOLUME,NUMBER_OF_TRADES) values ('GB0059822009','DLC','DIALOG SEMICOND.   LS-,13','Irrelevant','EUR','2505389','2018-05-20-07.41.00','19.07','19.09','19.06','19.03','382','3')";
+db2 "insert into DB2INST1.XETRA_STOCK_TRADE_DATA(ISIN,MNEMONIC,SECURITY_DESC,SECURITY_TYPE,CURRENCY,SECURITY_ID,TRADE_DATE_TIME,START_PRICE,MAX_PRICE,MIN_PRICE,END_PRICE,TRADED_VOLUME,NUMBER_OF_TRADES) values ('GB0059822009','DLC','DIALOG SEMICOND.   LS-,14','Irrelevant','EUR','2505390','2018-05-19-07.41.00','19.07','19.09','19.06','19.04','382','3')";
 db2 disconnect PUBSRC
 
-su - db2inst1
+db2 "delete from DB2INST1.XETRA_STOCK_TRADE_DATA where SECURITY_ID = 2505311"
+db2 "insert into DB2INST1.XETRA_STOCK_TRADE_DATA(ISIN,MNEMONIC,SECURITY_DESC,SECURITY_TYPE,CURRENCY,SECURITY_ID,TRADE_DATE_TIME,START_PRICE,MAX_PRICE,MIN_PRICE,END_PRICE,TRADED_VOLUME,NUMBER_OF_TRADES) values ('GB0059822008','DLC','DIALOG SEMICOND.   LS-,12','Irrelevant','EUR','2505312','2019-05-29-07.26.00','19.07','19.09','19.06','19.02','382','3')";
+db2 "insert into DB2INST1.XETRA_STOCK_TRADE_DATA(ISIN,MNEMONIC,SECURITY_DESC,SECURITY_TYPE,CURRENCY,SECURITY_ID,TRADE_DATE_TIME,START_PRICE,MAX_PRICE,MIN_PRICE,END_PRICE,TRADED_VOLUME,NUMBER_OF_TRADES) values ('GB0059822008','DLC','DIALOG SEMICOND.   LS-,12','Irrelevant','EUR','2505313','2019-05-29-07.15.00','19.07','19.09','19.06','19.02','382','3')";
+
 cd db2mqrep
 java -Djava.library.path=/opt/mqm/java/lib64 -jar db2-delta-server-1.0-jar-with-dependencies.jar
 
+
+db2 "update DB2INST1.XETRA_STOCK_TRADE_DATA set SECURITY_TYPE='UPDATED VALUE' where SECURITY_ID = 2505387"
+db2 "delete from DB2INST1.XETRA_STOCK_TRADE_DATA  where CURRENCY = 'EUR'"
+
+
+
+
+space+db
+ java.sql.SQLException: Error while executing SQL "SELECT min(dateTimeTrade) as min_date,max(dateTimeTrade) as max_date,count(*) as count_trades,avg(endPrice) as end_price_avg
+FROM XetraStockMarketTrade": Failed to create template from SQLQuery : [dateTimeTrade >= '2019-05-13T09:21:41.992']; nested exception is com.j_spaces.core.client.sql.SQLQueryException: Failed to create template from SQLQuery : [dateTimeTrade >= '2019-05-13T09:21:41.992']
