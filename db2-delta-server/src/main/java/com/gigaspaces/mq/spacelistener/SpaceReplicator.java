@@ -29,7 +29,8 @@ public class SpaceReplicator implements SpaceDataEventListener<Employee> {
     static Logger logger;
     private String deleteId;
 
-    static GigaSpace gigaSpace = null;
+    static IJSpace space = new UrlSpaceConfigurer("jini://*/*/insightedge-space").lookupGroups("xap-14.2.0").lookupTimeout(20000).space();
+    static GigaSpace gigaSpace = new GigaSpaceConfigurer(space).gigaSpace();
 
     private static Long TIMOUT_FOR_SPACE_WRITE = 60000L;
 
@@ -75,11 +76,6 @@ public class SpaceReplicator implements SpaceDataEventListener<Employee> {
     }
 
     public void processMessage() {
-
-        IJSpace space;
-
-        space = new UrlSpaceConfigurer("jini://*/*/insightedge-space").lookupGroups("xap-14.2.0").lookupTimeout(20000).space();
-        gigaSpace = new GigaSpaceConfigurer(space).gigaSpace();
 
         if (gigaSpace == null) {
             throw new IllegalStateException("gigaSpace cannot be null");
