@@ -22,3 +22,11 @@ kafka_2.11-2.1.1.tgz  - kafka installer<br>
 analyticsXtreme_analytics-xtreme-jdbc-demo.json  - interpreter for Zeppelin to query data<br>
 Setup instance.txt - how to setup instance<br>
 Running example.doc - how to run demo (older version, without analyticsxtreme)<br>
+
+
+# DB2 delta server description:
+
+DB2SpaceListener - entry point of app: initiates message consumer, listener and connects to queue <br>
+MQlistener - receives messages from queue, invokes operation duplication on space and stores operation in .dat file <br>
+SpaceReplicator - defines operation type (DLET delete, ISRT insert, REPL update), defines handler (depends on table) and does corresponding operation on space <br>
+XetraStockMarketTradeHandler/EmployeeHandler - handlers to create correct query to space for SpaceReplicator
