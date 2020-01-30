@@ -8,12 +8,13 @@ sudo apt-get install -y libstdc++5
 sudo apt-get install -y ksh
 sudo apt-get install -y libaio1
 sudo apt-get install -y rpm
-sudo dpkg --add-architecture i386
+#sudo dpkg --add-architecture i386
 sudo apt-get update && sudo apt-get upgrade
 sudo apt-get install -y libpam0g:i386
 sudo apt-get install -y binutils
 
 1. IE
+git clone https://github.com/GigaSpaces-ProfessionalServices/Crowley.git
 scp -i wan-gateway-example.pem ../crowley/gigaspaces-insightedge-enterprise-14.0.0-rc1-b19916.zip ubuntu@ec2-18-191-157-144.us-east-2.compute.amazonaws.com:/tmp
 mv /tmp/gigaspaces-insightedge-enterprise-14.0.0-rc1-b19916.zip ~
 unzip gigaspaces-insightedge-enterprise-14.0.0-rc1-b19916.zip
@@ -24,6 +25,11 @@ scp -i wan-gateway-example.pem ../crowley/insightedge-geo-demo-master.zip ubuntu
 mv /tmp/insightedge-geo-demo-master.zip ~
 unzip insightedge-geo-demo-master.zip
 rm insightedge-geo-demo-master.zip
+
+scp -i wan-gateway-example.pem ../crowley/insightedge-geo-demo-old-master.zip ubuntu@ec2-18-219-234-12.us-east-2.compute.amazonaws.com:/tmp
+mv /tmp/insightedge-geo-demo-old-master.zip ~
+unzip insightedge-geo-demo-old-master.zip
+rm insightedge-geo-demo-old-master.zip
 
 3. Maven
 sudo apt-get install maven
@@ -52,7 +58,8 @@ sudo apt-get install sbt
 
 
 7. RUN geospatial demo
-sudo sbt clean clean-files
+cp Crowley/build.sbt insightedge-geo-demo-old-master
+sudo sbt clean cleanFiles
 sudo rm -f -r insightedge-geo-demo-old-master/target
 sudo sbt scalaVersion
 sudo sbt sbtVersion
@@ -75,14 +82,15 @@ sudo apt-get -y install x2goserver x2goserver-xsession
 sudo add-apt-repository ppa:ubuntu-mate-dev/ppa
 sudo apt-get update
 sudo apt-get -y install ubuntu-mate-core ubuntu-mate-desktop
+Install x2go client to you machine
 
 10. Install DB2
 scp -i wan-gateway-example.pem ../Verizon\ POC/v11.1_linuxx64_server_t.tar.gz ubuntu@ec2-18-219-234-12.us-east-2.compute.amazonaws.com:/tmp
 mv /tmp/v11.1_linuxx64_server_t.tar.gz ~
 tar xfz v11.1_linuxx64_server_t.tar.gz
-sudo server_t/db2setup
+Login from x2go client from your machine
+sudo server_dec/db2setup
 . /home/ubuntu/sqllib/db2profile
-
 
 
 11. MQ
@@ -107,27 +115,16 @@ db2 drop database PUBSRC
 
 ------
  su - db2inst1
-download db2gs.jar
-mkdir /home/db2inst1/db2mqrep 
+mkdir /home/db2inst1/db2mqrep
+unzip db2 
 cd /home/db2inst1/db2mqrep
+download db2gs.jar from https://github.com/Gigaspaces/solution-hub/blob/master/db2gs.jar
+mv db2gs.jar db2gs.zip
+unzip db2gs.zip
 db2sampl  -name PUBSRC -sql
 
 create table for stock data in db2----->
-CREATE TABLE DB2INST1.XETRA_STOCK_TRADE_DATA (
-ISIN VARCHAR(60),
-MNEMONIC VARCHAR(60),
-SECURITY_DESC VARCHAR(500),
-SECURITY_TYPE VARCHAR(60),
-CURRENCY VARCHAR(60),
-SECURITY_ID INTEGER,
-TRADE_DATE_TIME TIMESTAMP,
-START_PRICE DECIMAL(10,2),
-MAX_PRICE DECIMAL(10,2),
-MIN_PRICE DECIMAL(10,2),
-END_PRICE DECIMAL(10,2),
-TRADED_VOLUME DECIMAL(10,2),
-NUMBER_OF_TRADES DECIMAL(10,2)
-);
+db2 CREATE TABLE DB2INST1.XETRA_STOCK_TRADE_DATA ( ISIN VARCHAR(60),MNEMONIC VARCHAR(60),SECURITY_DESC VARCHAR(500),SECURITY_TYPE VARCHAR(60),CURRENCY VARCHAR(60),SECURITY_ID INTEGER,TRADE_DATE_TIME TIMESTAMP,START_PRICE DECIMAL(10,2),MAX_PRICE DECIMAL(10,2),MIN_PRICE DECIMAL(10,2),END_PRICE DECIMAL(10,2),TRADED_VOLUME DECIMAL(10,2),NUMBER_OF_TRADES DECIMAL(10,2) );
 >-----
 
 db2 update db cfg for PUBSRC using logarchmeth1 "DISK:/home/db2inst1/db2mqrep"
@@ -159,14 +156,18 @@ gigaspaces-insightedge-enterprise-14.0.0-rc1-b19916/bin/insightedge demo
 
 
 12. Run app
+cd Crowley/db2-delta-server
+mvn clean install  
+sudo cp target/db2-delta-server-1.0-jar-with-dependencies.jar /home/db2inst1/db2mqrep
 su - db2inst1
+cd
 cd db2mqrep
 java -Djava.library.path=/opt/mqm/java/lib64 -jar db2-delta-server-1.0-jar-with-dependencies.jar
 Use list of libs in example with delta server
 debug
 java -Djava.library.path=/opt/mqm/java/lib64 -cp db2-delta-server-1.0-jar-with-dependencies.jar com.gigaspaces.mq.util.ReadQueueMessage - take 1 msg from queue
 
-mv /tmp/db2-delta-server-1.0-jar-with-dependencies.jar /home/db2inst1/db2mqrep
+#mv /tmp/db2-delta-server-1.0-jar-with-dependencies.jar /home/db2inst1/db2mqrep
 
 
 db2 "delete from DB2INST1.EMPLOYEE where empno=000067"
@@ -176,7 +177,7 @@ db2 "insert into DEPARTMENT(DEPTNO,DEPTNAME,MGRNO,ADMRDEPT) values ('JJ6','SALLY
 
 
 13. Install hadoop
-https://www.digitalvidya.com/blog/install-hadoop-on-ubuntu-and-run-your-first-mapreduce-program/
+https://www.digitalvidya.com/blog/ubuntu/
 http://mirrors.sonic.net/apache/hadoop/common/hadoop-3.0.2/hadoop-3.0.2.tar.gz
 
 
@@ -265,11 +266,6 @@ numberOfTrades DECIMAL(10,2)
 15. Update Zeppelin interpreter settings via API
 https://zeppelin.apache.org/docs/0.6.1/rest-api/rest-interpreter.html
 
-analyticsXtreme_analytics-xtreme-jdbc-demo.json
+Use input json body from : Crowley/analyticsXtreme_analytics-xtreme-jdbc-demo.json
 
-/home/ubuntu/gigaspaces-insightedge-enterprise-14.2.0-ga-b20400/hive-jdbc-2.3.2-standalone.jar
-/home/hduser/apache-hive-3.1.1-bin/lib/netty-3.10.5.Final.jar
-/home/hduser/apache-hive-3.1.1-bin/lib/netty-all-4.1.17.Final.jar
-
-
-
+Note : Setup document in other branch were having issues. This is latest working setup document
