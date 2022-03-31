@@ -22,7 +22,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <gsVersion>12.3.0</gsVersion>
-    <spring.version>4.1.1.RELEASE</spring.version>
+    <spring.version>5.3.18</spring.version>
     <xap.spring.session.version>1.0</xap.spring.session.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
